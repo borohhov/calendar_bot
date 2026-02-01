@@ -32,7 +32,7 @@ Optional (with defaults, or only needed for LLM responses):
 DEFAULT_TIMEZONE="UTC"
 OPENAI_API_KEY="your-openai-api-key"
 OPENAI_MODEL="gpt-4o-mini"
-SUPPORT_EMAIL="support@ananda.bot"
+SUPPORT_EMAIL="your@email.com"
 ```
 
 Note: `REDIS_URL` is required unless you set `DISABLE_WORKERS=true`.
