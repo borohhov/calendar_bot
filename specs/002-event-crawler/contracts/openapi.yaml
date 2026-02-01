@@ -1,0 +1,145 @@
+openapi: 3.0.3
+info:
+  title: Event Crawler API
+  version: 0.1.0
+servers:
+  - url: /api
+paths:
+  /crawl-jobs:
+    post:
+      summary: Create a crawl job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrawlJobCreateRequest'
+      responses:
+        '201':
+          description: Crawl job created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrawlJob'
+  /crawl-jobs/{id}:
+    get:
+      summary: Get crawl job status and report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Crawl job report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrawlJob'
+  /crawl-jobs/{id}/events:
+    get:
+      summary: List events captured by a crawl job
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Events captured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrawlJobEvents'
+components:
+  schemas:
+    CrawlJobCreateRequest:
+      type: object
+      required: [entryUrls, maxDepth]
+      properties:
+        userId:
+          type: string
+          description: User owner of the crawl job
+        webSourceId:
+          type: string
+        entryUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+        maxDepth:
+          type: integer
+          minimum: 0
+        allowExternal:
+          type: boolean
+          default: false
+    CrawlJob:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        webSourceId:
+          type: string
+          nullable: true
+        entryUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+        maxDepth:
+          type: integer
+        allowExternal:
+          type: boolean
+        status:
+          type: string
+          enum: [queued, running, completed, failed, canceled]
+        pagesVisited:
+          type: integer
+        pagesFailed:
+          type: integer
+        eventsCaptured:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        errorSummary:
+          type: string
+          nullable: true
+    CrawlJobEvents:
+      type: object
+      properties:
+        jobId:
+          type: string
+        total:
+          type: integer
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventSummary'
+    EventSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+          nullable: true
+        timezone:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+        summary:
+          type: string

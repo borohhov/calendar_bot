@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ananda Event Chat</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+      :root {
+        --ink: #1f2b27;
+        --muted: #5f6f6a;
+        --accent: #1f7a5a;
+        --accent-strong: #146a4c;
+        --accent-soft: #d9f5e8;
+        --panel: #ffffff;
+        --bubble-user: #dcf8c6;
+        --bubble-assistant: #ffffff;
+        --bubble-border: rgba(31, 43, 39, 0.08);
+        --background-a: #eaf6ef;
+        --background-b: #fdf5e6;
+        --shadow: 0 24px 60px rgba(20, 60, 45, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Space Grotesk", "Helvetica Neue", sans-serif;
+        color: var(--ink);
+        background: radial-gradient(circle at top left, rgba(31, 122, 90, 0.22), transparent 45%),
+          radial-gradient(circle at 80% 20%, rgba(253, 196, 93, 0.25), transparent 40%),
+          linear-gradient(160deg, var(--background-a), var(--background-b));
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        width: 280px;
+        height: 280px;
+        border-radius: 50%;
+        filter: blur(40px);
+        opacity: 0.35;
+        z-index: 0;
+      }
+
+      body::before {
+        background: #7fd9b4;
+        top: -60px;
+        right: 12%;
+      }
+
+      body::after {
+        background: #ffd08f;
+        bottom: -80px;
+        left: 8%;
+      }
+
+      .page {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 16px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .phone {
+        width: min(420px, 100%);
+        background: var(--panel);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid rgba(31, 43, 39, 0.08);
+      }
+
+      .chat-header {
+        background: linear-gradient(135deg, #1f7a5a, #2f9e7d);
+        color: #ffffff;
+        padding: 18px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.2);
+        display: grid;
+        place-items: center;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+
+      .header-text {
+        flex: 1;
+      }
+
+      .title {
+        font-size: 1.05rem;
+        font-weight: 600;
+      }
+
+      .subtitle {
+        font-size: 0.82rem;
+        opacity: 0.85;
+      }
+
+      .status-pill {
+        font-size: 0.7rem;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 6px 10px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .chat-body {
+        flex: 1;
+        padding: 18px;
+        background-image: radial-gradient(circle at 20% 20%, rgba(31, 122, 90, 0.06), transparent 45%),
+          radial-gradient(circle at 80% 10%, rgba(253, 208, 143, 0.12), transparent 40%),
+          repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.45) 0 12px, rgba(255, 255, 255, 0) 12px 24px);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .date-chip {
+        align-self: center;
+        background: rgba(31, 43, 39, 0.08);
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .message {
+        display: flex;
+        flex-direction: column;
+        max-width: 82%;
+      }
+
+      .message--user {
+        align-self: flex-end;
+      }
+
+      .message--assistant {
+        align-self: flex-start;
+      }
+
+      .bubble {
+        padding: 12px 14px;
+        border-radius: 16px;
+        line-height: 1.4;
+        font-size: 0.95rem;
+        position: relative;
+        border: 1px solid var(--bubble-border);
+        box-shadow: 0 12px 24px rgba(22, 59, 46, 0.08);
+        word-break: break-word;
+        white-space: pre-line;
+      }
+
+      .message--user .bubble {
+        background: var(--bubble-user);
+        border-top-right-radius: 6px;
+      }
+
+      .message--assistant .bubble {
+        background: var(--bubble-assistant);
+        border-top-left-radius: 6px;
+      }
+
+      .bubble.notice {
+        background: #fff4e4;
+        border-color: rgba(206, 145, 61, 0.2);
+      }
+
+      .meta {
+        margin-top: 6px;
+        font-size: 0.72rem;
+        color: var(--muted);
+        text-align: right;
+      }
+
+      .message--assistant .meta {
+        text-align: left;
+      }
+
+      .event-refs {
+        margin-top: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .event-ref {
+        background: rgba(31, 122, 90, 0.08);
+        border-radius: 12px;
+        padding: 8px 10px;
+        font-size: 0.78rem;
+        color: var(--ink);
+      }
+
+      .event-ref strong {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+
+      .typing {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: rgba(31, 43, 39, 0.35);
+        animation: bounce 1s infinite ease-in-out;
+      }
+
+      .dot:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+
+      .dot:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes bounce {
+        0%,
+        80%,
+        100% {
+          transform: translateY(0);
+          opacity: 0.4;
+        }
+        40% {
+          transform: translateY(-6px);
+          opacity: 1;
+        }
+      }
+
+      .composer {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 16px;
+        border-top: 1px solid rgba(31, 43, 39, 0.08);
+        background: #ffffff;
+      }
+
+      .composer input {
+        flex: 1;
+        border: 1px solid rgba(31, 43, 39, 0.18);
+        border-radius: 999px;
+        padding: 12px 16px;
+        font-size: 0.95rem;
+        outline: none;
+        transition: border 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .composer input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(31, 122, 90, 0.18);
+      }
+
+      .composer input.input-error {
+        border-color: #d86f5b;
+        box-shadow: 0 0 0 3px rgba(216, 111, 91, 0.18);
+      }
+
+      .send-btn {
+        border: none;
+        background: var(--accent);
+        color: #ffffff;
+        padding: 12px 16px;
+        border-radius: 999px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, background 0.2s ease;
+      }
+
+      .send-btn:disabled {
+        background: rgba(31, 122, 90, 0.4);
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .send-btn:hover:not(:disabled) {
+        background: var(--accent-strong);
+        transform: translateY(-1px);
+      }
+
+      .retry-btn {
+        margin-top: 10px;
+        border: none;
+        background: #f4b76a;
+        color: #3b2b10;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .helper {
+        padding: 10px 16px 0;
+        font-size: 0.78rem;
+        color: var(--muted);
+        background: #ffffff;
+      }
+
+      @media (max-width: 540px) {
+        .page {
+          padding: 16px 8px;
+        }
+
+        .phone {
+          border-radius: 20px;
+        }
+
+        .chat-header {
+          padding: 16px;
+        }
+
+        .composer {
+          padding: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="phone" role="region" aria-label="Event chat">
+        <header class="chat-header">
+          <div class="avatar" aria-hidden="true">EV</div>
+          <div class="header-text">
+            <div class="title">Ananda Event Chat</div>
+            <div class="subtitle">Ask about upcoming events</div>
+          </div>
+          <div class="status-pill">Live</div>
+        </header>
+
+        <p class="helper">Try: "What events are happening this weekend?"</p>
+
+        <main class="chat-body" id="chatBody" role="log" aria-live="polite" aria-relevant="additions">
+          <div class="date-chip">Today</div>
+          <div class="message message--assistant">
+            <div class="bubble">
+              Hi! Ask me about events and I will answer using your event calendar.
+            </div>
+            <div class="meta">Event Assistant</div>
+          </div>
+        </main>
+
+        <form class="composer" id="chatForm" autocomplete="off">
+          <input
+            id="chatInput"
+            name="question"
+            type="text"
+            placeholder="Ask about events"
+            aria-label="Type your question"
+            required
+          />
+          <button class="send-btn" id="sendBtn" type="submit" aria-label="Send message">Send</button>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      const chatBody = document.getElementById("chatBody");
+      const chatForm = document.getElementById("chatForm");
+      const chatInput = document.getElementById("chatInput");
+      const sendBtn = document.getElementById("sendBtn");
+
+      let pendingCount = 0;
+      let lastQuestion = "";
+      let typingNode = null;
+
+      function formatTime(date) {
+        return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(date);
+      }
+
+      function isNearBottom() {
+        return chatBody.scrollHeight - chatBody.scrollTop - chatBody.clientHeight < 80;
+      }
+
+      function scrollToBottom(force) {
+        if (force || isNearBottom()) {
+          chatBody.scrollTop = chatBody.scrollHeight;
+        }
+      }
+
+      function createMessageElement({ sender, text, kind, timestamp, eventReferences, retryAllowed }) {
+        const message = document.createElement("div");
+        message.className = `message message--${sender}`;
+
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+        if (kind && kind !== "answer") {
+          bubble.classList.add("notice");
+        }
+        bubble.textContent = text;
+
+        message.appendChild(bubble);
+
+        if (Array.isArray(eventReferences) && eventReferences.length > 0) {
+          const list = document.createElement("div");
+          list.className = "event-refs";
+
+          eventReferences.forEach((ref) => {
+            const item = document.createElement("div");
+            item.className = "event-ref";
+
+            const title = document.createElement("strong");
+            title.textContent = ref.title;
+            item.appendChild(title);
+
+            const detail = document.createElement("div");
+            const timeText = ref.startAt ? new Date(ref.startAt).toLocaleString() : "Time TBD";
+            const location = ref.sourceLabel ? ` | ${ref.sourceLabel}` : "";
+            detail.textContent = `${timeText}${location}`;
+            item.appendChild(detail);
+
+            list.appendChild(item);
+          });
+
+          bubble.appendChild(list);
+        }
+
+        if (retryAllowed) {
+          const retry = document.createElement("button");
+          retry.type = "button";
+          retry.className = "retry-btn";
+          retry.textContent = "Retry this question";
+          retry.addEventListener("click", () => {
+            if (lastQuestion) {
+              sendQuestion(lastQuestion, true);
+            }
+          });
+          bubble.appendChild(retry);
+        }
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = sender === "assistant" ? "Event Assistant" : formatTime(timestamp);
+        message.appendChild(meta);
+
+        return message;
+      }
+
+      function appendMessage(options) {
+        const message = createMessageElement(options);
+        chatBody.appendChild(message);
+        scrollToBottom();
+      }
+
+      function showTyping() {
+        pendingCount += 1;
+        if (typingNode) return;
+
+        typingNode = document.createElement("div");
+        typingNode.className = "message message--assistant";
+
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+
+        const typing = document.createElement("div");
+        typing.className = "typing";
+
+        for (let i = 0; i < 3; i += 1) {
+          const dot = document.createElement("span");
+          dot.className = "dot";
+          typing.appendChild(dot);
+        }
+
+        bubble.appendChild(typing);
+        typingNode.appendChild(bubble);
+        chatBody.appendChild(typingNode);
+        scrollToBottom(true);
+      }
+
+      function hideTyping() {
+        pendingCount = Math.max(0, pendingCount - 1);
+        if (pendingCount === 0 && typingNode) {
+          typingNode.remove();
+          typingNode = null;
+        }
+      }
+
+      function flashInputError() {
+        chatInput.classList.add("input-error");
+        setTimeout(() => chatInput.classList.remove("input-error"), 450);
+      }
+
+      function setSendEnabled() {
+        sendBtn.disabled = chatInput.value.trim().length === 0;
+      }
+
+      async function sendQuestion(question, fromRetry) {
+        const trimmed = question.trim();
+        if (!trimmed) {
+          flashInputError();
+          return;
+        }
+
+        lastQuestion = trimmed;
+        appendMessage({
+          sender: "user",
+          text: trimmed,
+          kind: "answer",
+          timestamp: new Date(),
+        });
+
+        if (!fromRetry) {
+          chatInput.value = "";
+        }
+        setSendEnabled();
+        chatInput.focus();
+
+        showTyping();
+
+        try {
+          const response = await fetch("/chat/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              question: trimmed,
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            }),
+          });
+
+          const payload = await response.json();
+          hideTyping();
+
+          if (!response.ok) {
+            appendMessage({
+              sender: "assistant",
+              text: payload?.message || "Something went wrong. Please try again.",
+              kind: "no_answer",
+              timestamp: new Date(),
+            });
+            return;
+          }
+
+          appendMessage({
+            sender: "assistant",
+            text: payload.message.text,
+            kind: payload.status,
+            timestamp: payload.message.timestamp ? new Date(payload.message.timestamp) : new Date(),
+            eventReferences: payload.message.eventReferences || [],
+            retryAllowed: payload.retryAllowed,
+          });
+        } catch (error) {
+          hideTyping();
+          appendMessage({
+            sender: "assistant",
+            text: "Network error. Please try again.",
+            kind: "no_answer",
+            timestamp: new Date(),
+          });
+        }
+      }
+
+      chatForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        sendQuestion(chatInput.value, false);
+      });
+
+      chatInput.addEventListener("input", setSendEnabled);
+      setSendEnabled();
+    </script>
+  </body>
+</html>

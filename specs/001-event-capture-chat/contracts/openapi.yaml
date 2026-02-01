@@ -1,0 +1,358 @@
+openapi: 3.0.3
+info:
+  title: Event Capture and WhatsApp Calendar Assistant
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+
+paths:
+  /connections/whatsapp:
+    post:
+      summary: Create WhatsApp connection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WhatsAppConnectionCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhatsAppConnection'
+  /connections/whatsapp/{connectionId}:
+    delete:
+      summary: Revoke WhatsApp connection
+      parameters:
+        - in: path
+          name: connectionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted
+
+  /webhooks/whatsapp:
+    post:
+      summary: Receive WhatsApp provider callbacks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WhatsAppWebhookPayload'
+      responses:
+        '200':
+          description: OK
+
+  /sources/web:
+    get:
+      summary: List web sources
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WebSource'
+    post:
+      summary: Create web source
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebSourceCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebSource'
+
+  /sources/web/{sourceId}:
+    patch:
+      summary: Update web source
+      parameters:
+        - in: path
+          name: sourceId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebSourceUpdate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebSource'
+    delete:
+      summary: Delete web source
+      parameters:
+        - in: path
+          name: sourceId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted
+
+  /events:
+    get:
+      summary: List events by date range
+      parameters:
+        - in: query
+          name: start
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: end
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: includeIncomplete
+          schema:
+            type: boolean
+            default: false
+        - in: query
+          name: q
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+
+  /events/{eventId}:
+    get:
+      summary: Get event detail
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+    delete:
+      summary: Delete event
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted
+
+  /events/export:
+    post:
+      summary: Export all event data
+      responses:
+        '200':
+          description: Export file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportResult'
+
+  /preferences:
+    get:
+      summary: Get recommendation preferences
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preference'
+    put:
+      summary: Update recommendation preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreferenceUpdate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preference'
+
+components:
+  schemas:
+    WhatsAppConnectionCreate:
+      type: object
+      required: [providerInstanceId, callbackUrl]
+      properties:
+        providerInstanceId:
+          type: string
+        callbackUrl:
+          type: string
+          format: uri
+    WhatsAppConnection:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        providerInstanceId:
+          type: string
+    WhatsAppWebhookPayload:
+      type: object
+      properties:
+        messageId:
+          type: string
+        from:
+          type: string
+        body:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    WebSourceCreate:
+      type: object
+      required: [url, crawlFrequencyMinutes]
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+          format: uri
+        crawlFrequencyMinutes:
+          type: integer
+          minimum: 1
+    WebSourceUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        crawlFrequencyMinutes:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [active, paused]
+    WebSource:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        url:
+          type: string
+        crawlFrequencyMinutes:
+          type: integer
+        status:
+          type: string
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        timezone:
+          type: string
+        locationName:
+          type: string
+        locationAddress:
+          type: string
+        completeness:
+          type: string
+          enum: [complete, incomplete]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventSource'
+    EventSource:
+      type: object
+      properties:
+        sourceType:
+          type: string
+          enum: [web, whatsapp]
+        sourceRef:
+          type: string
+        extractedAt:
+          type: string
+          format: date-time
+    Preference:
+      type: object
+      properties:
+        preferredCategories:
+          type: array
+          items:
+            type: string
+        preferredLocations:
+          type: array
+          items:
+            type: string
+        availabilityRules:
+          type: array
+          items:
+            type: string
+    PreferenceUpdate:
+      type: object
+      properties:
+        preferredCategories:
+          type: array
+          items:
+            type: string
+        preferredLocations:
+          type: array
+          items:
+            type: string
+        availabilityRules:
+          type: array
+          items:
+            type: string
+    ExportResult:
+      type: object
+      properties:
+        format:
+          type: string
+        downloadUrl:
+          type: string

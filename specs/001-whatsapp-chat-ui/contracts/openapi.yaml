@@ -1,0 +1,100 @@
+openapi: 3.0.3
+info:
+  title: Event Chat Web API
+  version: 0.1.0
+servers:
+  - url: /api
+paths:
+  /chat:
+    get:
+      summary: Serve the WhatsApp-style chat webpage
+      responses:
+        '200':
+          description: Chat webpage HTML
+          content:
+            text/html:
+              schema:
+                type: string
+  /chat/messages:
+    post:
+      summary: Ask an event question and receive an answer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatQuestionRequest'
+      responses:
+        '200':
+          description: Assistant answer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatAnswerResponse'
+        '400':
+          description: Invalid input
+components:
+  schemas:
+    ChatQuestionRequest:
+      type: object
+      required: [question]
+      properties:
+        question:
+          type: string
+          description: User question about events
+        timezone:
+          type: string
+          description: IANA timezone name
+        clientMessageId:
+          type: string
+          description: Client-generated id for the user message
+    ChatAnswerResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [answer, no_answer, clarify]
+        message:
+          $ref: '#/components/schemas/ChatMessage'
+        retryAllowed:
+          type: boolean
+          default: false
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: string
+        sender:
+          type: string
+          enum: [assistant, user]
+        text:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [sent, pending, failed]
+        kind:
+          type: string
+          enum: [answer, no_answer, clarify]
+        eventReferences:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventReference'
+    EventReference:
+      type: object
+      properties:
+        eventId:
+          type: string
+        title:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+          nullable: true
+        timezone:
+          type: string
+        sourceLabel:
+          type: string
+          nullable: true
